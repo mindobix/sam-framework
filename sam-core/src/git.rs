@@ -224,71 +224,44 @@ fn count_files_recursive(dir: &Path, count: &mut usize) -> Result<()> {
     Ok(())
 }
 
-/// List all top-level directories from `git ls-tree HEAD`.
-/// List domain-level directories (two levels deep) from the git tree.
-///
-/// Enterprise monorepos typically have domains at the second level:
-/// `apis/sales`, `apis/pricing`, `shared/auth`, etc. This function
-/// returns those two-level paths by enumerating top-level trees and
-/// then their immediate children.
-///
-/// Single-level items that have no subdirectories (e.g., a top-level
-/// List domain directories from the git tree.
-///
-/// Detects the repo structure automatically:
-/// - If `.sam/profiles.yaml` references two-level paths (e.g. `apis/sales`),
-///   returns two-level domains under matching parent dirs.
-/// - Otherwise returns top-level directories as domains.
-pub fn list_top_level_dirs(repo: &Path) -> Result<Vec<String>> {
-    let top_output = run_git(repo, &["ls-tree", "--name-only", "-d", "HEAD"])?;
-    let top_dirs: Vec<&str> = top_output.lines().filter(|l| !l.is_empty()).collect();
+/// Default max depth for directory listing.
+pub const DEFAULT_MAX_DEPTH: usize = 4;
 
-    // Check if profiles.yaml uses two-level paths
-    let two_level_parents = detect_two_level_parents(repo);
+/// List all directories in the git tree up to `max_depth` levels deep.
+/// Returns sorted list of paths like `["api", "api/v1", "api/v1/users", "shared/auth"]`.
+/// Skips dotfiles/dotdirs at any level.
+pub fn list_all_dirs(repo: &Path, max_depth: usize) -> Result<Vec<String>> {
+    // Use git ls-tree -r -d to get ALL directories recursively
+    let output = run_git(repo, &["ls-tree", "-r", "-d", "--name-only", "HEAD"])?;
 
-    let mut domains = Vec::new();
+    let mut dirs: Vec<String> = output
+        .lines()
+        .filter(|l| !l.is_empty())
+        .filter(|l| !l.starts_with('.') && !l.contains("/."))
+        .filter(|l| l.split('/').count() <= max_depth)
+        .map(|l| l.to_string())
+        .collect();
 
-    for top in &top_dirs {
-        if top.starts_with('.') {
-            continue;
-        }
-
-        if two_level_parents.contains(&top.to_string()) {
-            // Grouping dir (like "apis/") — list children as domains
-            let sub_output = run_git(repo, &["ls-tree", "--name-only", "-d", &format!("HEAD:{top}")])?;
-            for sub in sub_output.lines().filter(|l| !l.is_empty()) {
-                domains.push(format!("{top}/{sub}"));
-            }
-        } else {
-            // Top-level dir IS the domain
-            domains.push(top.to_string());
-        }
-    }
-
-    domains.sort();
-    Ok(domains)
+    dirs.sort();
+    Ok(dirs)
 }
 
-/// Detect which top-level dirs are grouping parents (two-level domain paths in profiles).
-fn detect_two_level_parents(repo: &Path) -> Vec<String> {
-    let profiles_path = repo.join(".sam").join("profiles.yaml");
-    let content = match std::fs::read_to_string(&profiles_path) {
-        Ok(c) => c,
-        Err(_) => return Vec::new(),
-    };
+/// Backward-compatible wrapper. Returns dirs at default depth.
+pub fn list_top_level_dirs(repo: &Path) -> Result<Vec<String>> {
+    list_all_dirs(repo, DEFAULT_MAX_DEPTH)
+}
 
-    let mut parents = std::collections::HashSet::new();
-
-    for line in content.lines() {
-        let trimmed = line.trim().trim_start_matches("- ");
-        if trimmed.contains('/') && !trimmed.contains(':') && !trimmed.starts_with('#') {
-            if let Some(parent) = trimmed.split('/').next() {
-                parents.insert(parent.to_string());
-            }
-        }
-    }
-
-    parents.into_iter().collect()
+/// Check if a directory in the git tree contains blobs (files) directly,
+/// not just subdirectories. Used to determine if a dir is a "leaf project"
+/// (should be dimmed) vs a "container" (should stay visible for navigation).
+pub fn dir_has_files(repo: &Path, dir_path: &str) -> Result<bool> {
+    let tree_spec = format!("HEAD:{}", dir_path);
+    let output = run_git(repo, &["ls-tree", &tree_spec])?;
+    // Check if any entry is a blob (file), not a tree (directory)
+    Ok(output.lines().any(|line| {
+        let parts: Vec<&str> = line.splitn(4, |c| c == ' ' || c == '\t').collect();
+        parts.len() >= 3 && parts[1] == "blob"
+    }))
 }
 
 /// List all tree entries (files and dirs) under a path from `git ls-tree`.

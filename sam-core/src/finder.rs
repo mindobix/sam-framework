@@ -124,22 +124,33 @@ fn ensure_monograph_running(repo: &Path) {
 // Public API
 // ---------------------------------------------------------------------------
 
-/// Create ghost folders for all non-hydrated domains.
-pub fn setup_skeleton_dirs(repo: &Path) -> Result<(usize, usize)> {
-    let all_domains = git::list_top_level_dirs(repo)?;
+/// Create ghost folders for all directories up to `max_depth` levels.
+/// Container dirs (only subdirs, no files) stay visible for navigation.
+/// Leaf project dirs (contain files) get dimmed via hidden flag.
+pub fn setup_skeleton_dirs(repo: &Path, max_depth: usize) -> Result<(usize, usize)> {
+    let all_dirs = git::list_all_dirs(repo, max_depth)?;
     let ws = workspace::load(repo).unwrap_or_default();
     let mut created = 0usize;
 
-    for domain in &all_domains {
-        let dp = repo.join(domain);
-        if ws.has_domain(domain) {
-            if dp.exists() { set_hidden(&dp, false); }
+    for dir in &all_dirs {
+        let dp = repo.join(dir);
+
+        if ws.has_domain(dir) {
+            // Hydrated — ensure visible along with parents
+            unhide_with_parents(repo, dir);
         } else {
+            // Not hydrated — create skeleton
             if !dp.exists() {
                 fs::create_dir_all(&dp).map_err(SamError::IoError)?;
                 created += 1;
             }
-            set_hidden(&dp, true);
+
+            // Only hide leaf dirs (contain files). Container dirs stay visible.
+            let is_leaf = git::dir_has_files(repo, dir).unwrap_or(false);
+            if is_leaf {
+                set_hidden(&dp, true);
+            }
+            // Pure container dirs (only subdirs) stay visible for navigation
         }
     }
 
@@ -150,24 +161,44 @@ pub fn setup_skeleton_dirs(repo: &Path) -> Result<(usize, usize)> {
 
     ensure_monograph_running(repo);
 
-    Ok((all_domains.len(), created))
+    Ok((all_dirs.len(), created))
 }
 
-/// Clear hidden flag after hydration.
+/// Unhide a directory AND all its parent directories.
+fn unhide_with_parents(repo: &Path, dir: &str) {
+    // Unhide the target
+    set_hidden(&repo.join(dir), false);
+
+    // Unhide all parent dirs
+    let parts: Vec<&str> = dir.split('/').collect();
+    for i in 1..parts.len() {
+        let parent = parts[..i].join("/");
+        set_hidden(&repo.join(&parent), false);
+    }
+}
+
+/// Clear hidden flag after hydration — unhides target + parents.
 pub fn mark_hydrated(repo: &Path, domain: &str) -> Result<()> {
-    set_hidden(&repo.join(domain), false);
+    unhide_with_parents(repo, domain);
     Ok(())
 }
 
 /// Refresh hidden flags based on workspace state.
 pub fn refresh_tags(repo: &Path) -> Result<usize> {
-    let all_domains = git::list_top_level_dirs(repo)?;
+    let all_dirs = git::list_all_dirs(repo, git::DEFAULT_MAX_DEPTH)?;
     let ws = workspace::load(repo).unwrap_or_default();
     let mut updated = 0;
-    for domain in &all_domains {
-        let dp = repo.join(domain);
+    for dir in &all_dirs {
+        let dp = repo.join(dir);
         if !dp.exists() { continue; }
-        set_hidden(&dp, !ws.has_domain(domain));
+        if ws.has_domain(dir) {
+            unhide_with_parents(repo, dir);
+        } else {
+            let is_leaf = git::dir_has_files(repo, dir).unwrap_or(false);
+            if is_leaf {
+                set_hidden(&dp, true);
+            }
+        }
         updated += 1;
     }
     Ok(updated)
@@ -205,12 +236,13 @@ pub fn dehydrate_all(repo: &Path) -> Result<usize> {
 }
 
 /// Watch Finder's current path. Hydrate ghost folders on navigation.
+/// Works at any directory depth.
 pub fn watch_and_hydrate(repo: &Path) -> Result<()> {
     use std::collections::HashSet;
     use std::time::{Duration, Instant};
 
-    let all_domains = git::list_top_level_dirs(repo)?;
-    let all_set: HashSet<String> = all_domains.into_iter().collect();
+    let all_dirs = git::list_all_dirs(repo, git::DEFAULT_MAX_DEPTH)?;
+    let all_set: HashSet<String> = all_dirs.into_iter().collect();
 
     let repo_str = repo.to_string_lossy().to_string();
     let repo_prefix = format!("{}/", repo_str);
@@ -222,8 +254,8 @@ pub fn watch_and_hydrate(repo: &Path) -> Result<()> {
     let mut ghosts = rebuild_ghosts(repo, &all_set);
 
     eprintln!(
-        "Watching {} ghost folders. Navigate into one in Finder to hydrate it.",
-        ghosts.len()
+        "Watching {} ghost folders (up to {} levels deep). Navigate into one in Finder to hydrate it.",
+        ghosts.len(), git::DEFAULT_MAX_DEPTH
     );
     eprintln!("Press Ctrl+C to stop.\n");
 
@@ -235,15 +267,15 @@ pub fn watch_and_hydrate(repo: &Path) -> Result<()> {
 
         if let Some(finder_path) = get_finder_current_path() {
             if finder_path != last_path && finder_path.starts_with(&repo_prefix) {
-                let domain = finder_path
+                let dir = finder_path
                     .strip_prefix(&repo_prefix)
                     .unwrap_or("")
                     .trim_end_matches('/');
 
-                if !domain.is_empty() && ghosts.contains(domain) {
-                    eprintln!("  Detected: {} — resolving deps & hydrating...", domain);
+                if !dir.is_empty() && ghosts.contains(dir) {
+                    eprintln!("  Detected: {} — resolving deps & hydrating...", dir);
 
-                    let domains_to_hydrate = resolve_with_deps(repo, domain);
+                    let domains_to_hydrate = resolve_with_deps(repo, dir);
 
                     if let Err(e) = git::add_sparse(repo, &domains_to_hydrate) {
                         eprintln!("  \u{2717} sparse-checkout failed: {}", e);
@@ -261,13 +293,14 @@ pub fn watch_and_hydrate(repo: &Path) -> Result<()> {
                             let _ = workspace::save(repo, &w);
                         }
 
+                        // Unhide hydrated dirs + their parents
                         for d in &domains_to_hydrate {
-                            set_hidden(&repo.join(d), false);
+                            unhide_with_parents(repo, d);
                             ghosts.remove(d.as_str());
                         }
 
                         eprintln!("  \u{2713} {} + {} deps hydrated",
-                            domain, domains_to_hydrate.len() - 1);
+                            dir, domains_to_hydrate.len() - 1);
                     }
                 }
 
@@ -279,7 +312,7 @@ pub fn watch_and_hydrate(repo: &Path) -> Result<()> {
     }
 }
 
-fn rebuild_ghosts(repo: &Path, all_domains: &std::collections::HashSet<String>) -> std::collections::HashSet<String> {
+fn rebuild_ghosts(repo: &Path, all_dirs: &std::collections::HashSet<String>) -> std::collections::HashSet<String> {
     let ws = workspace::load(repo).unwrap_or_default();
-    all_domains.iter().filter(|d| !ws.has_domain(d)).cloned().collect()
+    all_dirs.iter().filter(|d| !ws.has_domain(d)).cloned().collect()
 }

@@ -79,7 +79,11 @@ enum Commands {
         output: Option<String>,
     },
     /// Set up Finder integration (ghost folders + auto-hydrate on open)
-    Setup,
+    Setup {
+        /// Max directory depth for ghost folders (default: 4)
+        #[arg(long, default_value_t = 4)]
+        depth: usize,
+    },
     /// Refresh Finder tags based on current hydration state
     Refresh,
     /// Watch Finder and auto-hydrate when you navigate into a ghost folder
@@ -144,9 +148,9 @@ fn main() {
             let repo = require_repo(cli.repo.clone());
             commands::graph::run(&repo, domain.as_deref(), output.as_deref())
         }
-        Commands::Setup => {
+        Commands::Setup { depth } => {
             let repo = require_repo(cli.repo.clone());
-            commands::setup::run(&repo)
+            commands::setup::run(&repo, depth)
         }
         Commands::Refresh => {
             let repo = require_repo(cli.repo.clone());
