@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAM — MVP Build Plan</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f5f3;
+  --color-background-info: #e6f1fb;
+  --color-background-success: #eaf3de;
+  --color-background-warning: #faeeda;
+  --color-background-danger: #fcebeb;
+  --color-text-primary: #1a1a18;
+  --color-text-secondary: #6b6b67;
+  --color-text-info: #185fa5;
+  --color-text-success: #3b6d11;
+  --color-text-warning: #854f0b;
+  --color-text-danger: #a32d2d;
+  --color-border-tertiary: rgba(0,0,0,0.12);
+  --color-border-secondary: rgba(0,0,0,0.22);
+  --color-border-info: #185fa5;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #1e1e1c;
+    --color-background-secondary: #2a2a28;
+    --color-background-info: #0c3358;
+    --color-background-success: #1a3308;
+    --color-background-warning: #412402;
+    --color-background-danger: #3a1010;
+    --color-text-primary: #e8e8e2;
+    --color-text-secondary: #9c9a92;
+    --color-text-info: #85b7eb;
+    --color-text-success: #97c459;
+    --color-text-warning: #ef9f27;
+    --color-text-danger: #f09595;
+    --color-border-tertiary: rgba(255,255,255,0.1);
+    --color-border-secondary: rgba(255,255,255,0.2);
+    --color-border-info: #85b7eb;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+
+.root { max-width: 860px; margin: 0 auto; }
+
+.page-header { margin-bottom: 1.5rem; }
+.page-header h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+.page-header p  { font-size: 13px; color: var(--color-text-secondary); }
+
+/* Legend */
+.legend { display: flex; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--color-text-secondary); }
+.leg-dot  { width: 10px; height: 3px; border-radius: 2px; }
+
+/* Phase */
+.phase { margin-bottom: 16px; }
+.phase-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.phase-label  { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.phase-title  { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.phase-sub    { font-size: 11px; color: var(--color-text-secondary); }
+
+/* Task grid */
+.task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+@media (max-width: 560px) { .task-grid { grid-template-columns: 1fr; } }
+
+.task {
+  border-radius: var(--border-radius-md);
+  padding: 10px 12px;
+  border: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-background-primary);
+  transition: border-color .15s;
+}
+.task.can-start  { border-left: 3px solid #28c840; }
+.task.needs-mac  { border-left: 3px solid #febc2e; }
+.task.day2       { border-left: 3px solid #378add; }
+
+.task-top  { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.task-icon {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 500; flex-shrink: 0;
+}
+.task-name { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+.task-lang {
+  margin-left: auto; font-size: 10px; padding: 2px 6px;
+  border-radius: 10px; background: var(--color-background-secondary);
+  color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary);
+  white-space: nowrap;
+}
+.task-desc { font-size: 11px; color: var(--color-text-secondary); line-height: 1.5; }
+.task-sub  { font-size: 10px; color: var(--color-text-secondary); margin-top: 4px; font-style: italic; }
+
+/* UX flow */
+.section-title { font-size: 11px; color: var(--color-text-secondary); font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.ux-flow { display: flex; flex-direction: column; gap: 0; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-primary); }
+.ux-step { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.ux-step:last-child { border-bottom: none; }
+.ux-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 500; flex-shrink: 0; margin-top: 2px;
+}
+.ux-main { flex: 1; }
+.ux-cmd {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--color-text-primary);
+  background: var(--color-background-secondary);
+  padding: 3px 7px; border-radius: 4px;
+  display: inline-block; margin-bottom: 4px;
+}
+.ux-feel { font-size: 11px; color: var(--color-text-secondary); line-height: 1.5; }
+.ux-badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  flex-shrink: 0; margin-top: 2px; font-weight: 500;
+  white-space: nowrap; align-self: flex-start;
+}
+
+/* Honest box */
+.honest-box {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: 14px 16px; margin-top: 16px;
+  border: 0.5px solid var(--color-border-tertiary);
+}
+.honest-title { font-size: 12px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 10px; }
+.honest-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 6px 0; border-bottom: 0.5px solid var(--color-border-tertiary);
+  font-size: 12px; color: var(--color-text-primary); line-height: 1.5;
+}
+.honest-row:last-child { border-bottom: none; }
+.honest-check {
+  width: 18px; height: 18px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; flex-shrink: 0; margin-top: 1px; font-weight: 500;
+}
+
+/* Divider */
+.divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 18px 0; }
+</style>
+</head>
+<body>
+<div class="root">
+
+  <div class="page-header">
+    <h1>SAM — MVP build plan</h1>
+    <p>Sparse API Monolith framework · Mac-first · Days not months · Honest sequencing</p>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#28c840"></div>Can write + run now</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#378add"></div>Write now, test day 2+</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#febc2e"></div>Write now, needs Xcode to build</div>
+  </div>
+
+  <!-- Day 1 -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-label" style="background:var(--color-background-success);color:var(--color-text-success)">Day 1</span>
+      <div>
+        <div class="phase-title">The core — sam CLI + profile engine</div>
+        <div class="phase-sub">Everything the dev touches first. This has to feel tight.</div>
+      </div>
+    </div>
+    <div class="task-grid">
+      <div class="task can-start">
+        <div class="task-top">
+          <div class="task-icon" style="background:var(--color-background-success);color:var(--color-text-success)">CLI</div>
+          <div class="task-name">sam CLI</div>
+          <span class="task-lang">Go</span>
+        </div>
+        <div class="task-desc">sam init · sam use --profile · sam fetch · sam plan. Wraps git sparse-checkout with a clean interface. Brewable day 1.</div>
+        <div class="task-sub">Start here — foundation for everything else</div>
+      </div>
+      <div class="task can-start">
+        <div class="task-top">
+          <div class="task-icon" style="background:var(--color-background-success);color:var(--color-text-success)">PRF</div>
+          <div class="task-name">Profile engine</div>
+          <span class="task-lang">Go + YAML</span>
+        </div>
+        <div class="task-desc">profiles.yaml schema + parser. Team profiles committed to repo. sam use loads your workspace in one command.</div>
+        <div class="task-sub">Committed to repo — shared by whole team</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 2 -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-label" style="background:var(--color-background-info);color:var(--color-text-info)">Day 2</span>
+      <div>
+        <div class="phase-title">MonoGraph — the AI brain</div>
+        <div class="phase-sub">Static imports + git log co-change. The intelligence that makes sparse checkout feel smart.</div>
+      </div>
+    </div>
+    <div class="task-grid">
+      <div class="task day2">
+        <div class="task-top">
+          <div class="task-icon" style="background:var(--color-background-info);color:var(--color-text-info)">AST</div>
+          <div class="task-name">Static import analyzer</div>
+          <span class="task-lang">Python</span>
+        </div>
+        <div class="task-desc">tree-sitter parses JS/TS/Python/Java/Go/C#. Outputs dependency graph. Runs once on clone, caches to .sam/graph.json.</div>
+        <div class="task-sub">Supports polyglot monorepos out of the box</div>
+      </div>
+      <div class="task day2">
+        <div class="task-top">
+          <div class="task-icon" style="background:var(--color-background-info);color:var(--color-text-info)">GIT</div>
+          <div class="task-name">Co-change miner</div>
+          <span class="task-lang">Python</span>
+        </div>
+        <div class="task-desc">Mines git log for file co-change frequency. "These two modules changed together 87 times — you need both." Scored 0.0–1.0.</div>
+        <div class="task-sub">The signal static analysis always misses</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 3 -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-label" style="background:var(--color-background-warning);color:var(--color-text-warning)">Day 3</span>
+      <div>
+        <div class="phase-title">MonoLens VS Code extension + MonoWatch hook</div>
+        <div class="phase-sub">The editor experience and the safety net. This is where devs live.</div>
+      </div>
+    </div>
+    <div class="task-grid">
+      <div class="task day2">
+        <div class="task-top">
+          <div class="task-icon" style="background:var(--color-background-warning);color:var(--color-text-warning)">VSC</div>
+          <div class="task-name">MonoLens extension</div>
+          <span class="task-lang">TypeScript</span>
+        </div>
+        <div class="task-desc">Ghost folders in VS Code sidebar. Click to hydrate. Inline gutter annotations: "9 teams use this fn." Reads .sam/graph.json.</div>
+        <div class="task-sub">90% of Finder UX — ships before Xcode is touched</div>
+      </div>
+      <div class="task can-start">
+        <div class="task-top">
+          <div class="task-icon" style="background:var(--color-background-success);color:var(--color-text-success)">WCH</div>
+          <div class="task-name">MonoWatch hook</div>
+          <span class="task-lang">Go + shell</span>
+        </div>
+        <div class="task-desc">pre-push git hook. Reads diff, queries MonoGraph, shows impacted domains with risk scores. Auto-installed by sam init.</div>
+        <div class="task-sub">Safety net before every push</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 4-5 -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-label" style="background:var(--color-background-danger);color:var(--color-text-danger)">Day 4–5</span>
+      <div>
+        <div class="phase-title">MonoShell — macOS Finder integration</div>
+        <div class="phase-sub">The wow moment. Requires Xcode on your Mac to compile. Code written here, built there.</div>
+      </div>
+    </div>
+    <div class="task-grid">
+      <div class="task needs-mac">
+        <div class="task-top">
+          <div class="task-icon" style="background:var(--color-background-warning);color:var(--color-text-warning)">FP</div>
+          <div class="task-name">FileProvider extension</div>
+          <span class="task-lang">Swift</span>
+        </div>
+        <div class="task-desc">macOS FileProvider API. Registers the monorepo as a cloud-like drive. Ghost overlays for unhydrated folders. Triggers sam fetch on open.</div>
+        <div class="task-sub">Same API as iCloud Drive — proven pattern</div>
+      </div>
+      <div class="task needs-mac">
+        <div class="task-top">
+          <div class="task-icon" style="background:var(--color-background-warning);color:var(--color-text-warning)">FX</div>
+          <div class="task-name">FinderSync badges</div>
+          <span class="task-lang">Swift</span>
+        </div>
+        <div class="task-desc">FinderSync extension for badge overlays (ghost/loading/ready). Right-click context menu: "Hydrate with SAM", "Show dependencies", "Impact check".</div>
+        <div class="task-sub">The Finder experience devs will show in demos</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- UX Flow -->
+  <div class="section-title">The developer experience we're delivering — end to end</div>
+  <div class="ux-flow">
+    <div class="ux-step">
+      <div class="ux-num" style="background:var(--color-background-success);color:var(--color-text-success)">1</div>
+      <div class="ux-main">
+        <div class="ux-cmd">sam init git@company.com/enterprise-api</div>
+        <div class="ux-feel">Clones in 8 seconds. All 89 folders visible. Zero code downloaded yet. Finder shows ghosts.</div>
+      </div>
+      <span class="ux-badge" style="background:var(--color-background-success);color:var(--color-text-success)">8 sec</span>
+    </div>
+    <div class="ux-step">
+      <div class="ux-num" style="background:var(--color-background-success);color:var(--color-text-success)">2</div>
+      <div class="ux-main">
+        <div class="ux-cmd">sam use --profile sales-api</div>
+        <div class="ux-feel">Fetches your domain + AI-resolved deps. Editor opens. Only your code is visible. Feels like a normal repo.</div>
+      </div>
+      <span class="ux-badge" style="background:var(--color-background-info);color:var(--color-text-info)">340 MB</span>
+    </div>
+    <div class="ux-step">
+      <div class="ux-num" style="background:var(--color-background-info);color:var(--color-text-info)">3</div>
+      <div class="ux-main">
+        <div class="ux-cmd">edit · save · test locally</div>
+        <div class="ux-feel">MonoLens shows only relevant files. Tests run only in your domain. MonoWatch shows impact inline as you type in shared files.</div>
+      </div>
+      <span class="ux-badge" style="background:var(--color-background-warning);color:var(--color-text-warning)">local</span>
+    </div>
+    <div class="ux-step">
+      <div class="ux-num" style="background:var(--color-background-warning);color:var(--color-text-warning)">4</div>
+      <div class="ux-main">
+        <div class="ux-cmd">git push</div>
+        <div class="ux-feel">MonoWatch pre-push hook runs. If you touched shared code, impact report prints. Critical = warning. You decide to push or not.</div>
+      </div>
+      <span class="ux-badge" style="background:var(--color-background-danger);color:var(--color-text-danger)">safe</span>
+    </div>
+    <div class="ux-step">
+      <div class="ux-num" style="background:var(--color-background-danger);color:var(--color-text-danger)">5</div>
+      <div class="ux-main">
+        <div class="ux-cmd">sam deploy --profile sales-api</div>
+        <div class="ux-feel">Deploys only your domain's services. CI runs only impacted tests. Other teams see impact alerts. Nobody else's deploy breaks.</div>
+      </div>
+      <span class="ux-badge" style="background:var(--color-background-success);color:var(--color-text-success)">ship</span>
+    </div>
+  </div>
+
+  <!-- Honest box -->
+  <div class="honest-box">
+    <div class="honest-title">What this partnership commits to</div>
+    <div class="honest-row">
+      <div class="honest-check" style="background:var(--color-background-success);color:var(--color-text-success)">Y</div>
+      <div>Write every line of code for every component — production quality, not pseudocode</div>
+    </div>
+    <div class="honest-row">
+      <div class="honest-check" style="background:var(--color-background-success);color:var(--color-text-success)">Y</div>
+      <div>Reason through every technical decision and trade-off before you implement</div>
+    </div>
+    <div class="honest-row">
+      <div class="honest-check" style="background:var(--color-background-success);color:var(--color-text-success)">Y</div>
+      <div>Debug and iterate when something doesn't work — no abandonment mid-build</div>
+    </div>
+    <div class="honest-row">
+      <div class="honest-check" style="background:var(--color-background-success);color:var(--color-text-success)">Y</div>
+      <div>Flag bad ideas before you build them, not after you've spent the time</div>
+    </div>
+    <div class="honest-row">
+      <div class="honest-check" style="background:var(--color-background-warning);color:var(--color-text-warning)">!</div>
+      <div>Swift/Xcode code needs your Mac to compile — code written here, built and tested there, debugged together</div>
+    </div>
+    <div class="honest-row">
+      <div class="honest-check" style="background:var(--color-background-warning);color:var(--color-text-warning)">!</div>
+      <div>Apple code signing + entitlements will add friction — step-by-step guidance provided for every hurdle</div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;padding:12px 14px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:12px;color:var(--color-text-secondary);line-height:1.6">
+    <span style="font-weight:500;color:var(--color-text-primary)">Critical first question before writing line one:</span> What does your target repo actually look like? Real folder structure, real language mix, real number of API domains. MonoGraph's import parser must be tuned to your actual stack from day one — or the dependency resolution will be wrong and everything built on top of it will feel broken.
+  </div>
+
+</div>
+</body>
+</html>

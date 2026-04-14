@@ -1,0 +1,129 @@
+# .sam/profiles.yaml
+# Sparse API Monolith — workspace profiles
+# COMMITTED TO REPO — shared by your entire team
+# Each profile defines what code a team needs on their machine.
+# Docs: https://github.com/sam-framework/sam/docs/profiles.md
+
+version: "1.0"
+
+profiles:
+
+  # ─────────────────────────────────────────────
+  # Sales API team
+  # ─────────────────────────────────────────────
+  sales-api:
+    owners:
+      - "@sales-team"
+    domains:
+      - apis/sales
+      - apis/crm-integration
+      - apis/pricing
+    auto_include:
+      - shared/auth        # always hydrated — required by everything
+      - shared/types       # core type definitions
+    ai_infer: true         # let MonoGraph add deps it detects in imports
+    watch:
+      - apis/inventory     # get alerts when this changes, don't hydrate
+    deploy:
+      command: "kubectl apply -f k8s/apis/sales/ -f k8s/apis/pricing/"
+      pre_deploy_check: true
+
+  # ─────────────────────────────────────────────
+  # Products team
+  # ─────────────────────────────────────────────
+  products-api:
+    owners:
+      - "@products-team"
+    domains:
+      - apis/products
+      - apis/catalog
+      - apis/search
+    auto_include:
+      - shared/auth
+      - shared/types
+      - shared/media       # image/asset handling shared lib
+    ai_infer: true
+    watch:
+      - apis/inventory
+      - apis/pricing
+    deploy:
+      command: "kubectl apply -f k8s/apis/products/ -f k8s/apis/catalog/ -f k8s/apis/search/"
+
+  # ─────────────────────────────────────────────
+  # Payments team
+  # ─────────────────────────────────────────────
+  payments-api:
+    owners:
+      - "@payments-team"
+    domains:
+      - apis/payments
+      - apis/checkout
+      - apis/cart
+    auto_include:
+      - shared/auth
+      - shared/types
+    ai_infer: true
+    watch:
+      - shared/auth        # CRITICAL — any auth change affects us
+    deploy:
+      command: "kubectl apply -f k8s/apis/payments/"
+      pre_deploy_check: true
+
+  # ─────────────────────────────────────────────
+  # Loyalty and CRM
+  # ─────────────────────────────────────────────
+  loyalty-api:
+    owners:
+      - "@loyalty-team"
+    domains:
+      - apis/loyalty
+      - apis/rewards
+      - apis/notifications
+    auto_include:
+      - shared/auth
+      - shared/types
+    ai_infer: true
+    watch:
+      - apis/sales
+      - apis/payments
+
+  # ─────────────────────────────────────────────
+  # Data and reporting
+  # ─────────────────────────────────────────────
+  data-platform:
+    owners:
+      - "@data-team"
+    domains:
+      - apis/reporting
+      - apis/analytics
+      - apis/data-pipeline
+    auto_include:
+      - shared/auth
+      - shared/types
+    ai_infer: false        # data team knows their deps explicitly
+
+  # ─────────────────────────────────────────────
+  # Platform / SRE — full monolith access
+  # ─────────────────────────────────────────────
+  platform:
+    owners:
+      - "@platform-team"
+      - "@sre-team"
+    domains: "*"           # all domains — no sparse checkout
+    ai_infer: false        # not needed with full checkout
+
+  # ─────────────────────────────────────────────
+  # New hire onboarding — minimal surface area
+  # ─────────────────────────────────────────────
+  onboarding:
+    owners:
+      - "@everyone"
+    domains:
+      - apis/hello-world
+      - docs/getting-started
+    auto_include:
+      - shared/auth
+      - shared/types
+    ai_infer: false
+    deploy:
+      command: "echo 'Talk to your team lead for deploy access'"

@@ -1,0 +1,33 @@
+# Build artifacts
+target/
+*.o
+*.a
+*.dylib
+
+# Rust
+**/*.rs.bk
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+
+# Go
+monowatch/monowatch
+
+# macOS
+.DS_Store
+*.swp
+
+# IDE
+.vscode/
+.idea/
+
+# SAM local state (gitignored in repos, not here)
+.vscode-test/

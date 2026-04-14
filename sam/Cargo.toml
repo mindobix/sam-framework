@@ -1,0 +1,14 @@
+[package]
+name = "sam"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "sam"
+path = "src/main.rs"
+
+[dependencies]
+sam-core = { path = "../sam-core" }
+clap = { version = "4", features = ["derive"] }
+serde_json = { workspace = true }
+anyhow = { workspace = true }

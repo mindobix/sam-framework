@@ -1,0 +1,102 @@
+{
+  "name": "monolens",
+  "displayName": "MonoLens — SAM Framework",
+  "description": "Ghost folder workspace, hydrate-on-click, and impact analysis for SAM sparse monorepos",
+  "version": "0.1.0",
+  "publisher": "sam-framework",
+  "icon": "media/icon-loaded.png",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": [
+    "workspaceContains:.sam/profiles.yaml",
+    "workspaceContains:.sam/config.yaml"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sam-explorer",
+          "title": "SAM Domains",
+          "icon": "media/icon-ghost.svg"
+        }
+      ]
+    },
+    "views": {
+      "sam-explorer": [
+        {
+          "id": "samDomainTree",
+          "name": "Domains",
+          "contextualTitle": "SAM Workspace"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "monolens.hydrateOnClick",  "title": "SAM: Hydrate domain" },
+      { "command": "monolens.hydrateWithDeps", "title": "SAM: Hydrate with dependencies" },
+      { "command": "monolens.showPlan",        "title": "SAM: Show fetch plan" },
+      { "command": "monolens.useProfile",      "title": "SAM: Switch workspace profile" },
+      { "command": "monolens.showImpact",      "title": "SAM: Show change impact" },
+      { "command": "monolens.refreshTree",     "title": "SAM: Refresh domain tree" },
+      { "command": "monolens.showQuickPick",   "title": "SAM: Commands..." }
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "monolens.hydrateOnClick",
+          "when": "view == samDomainTree && viewItem == ghost",
+          "group": "sam@1"
+        },
+        {
+          "command": "monolens.hydrateWithDeps",
+          "when": "view == samDomainTree && viewItem == ghost",
+          "group": "sam@2"
+        },
+        {
+          "command": "monolens.showPlan",
+          "when": "view == samDomainTree",
+          "group": "sam@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "MonoLens",
+      "properties": {
+        "monolens.samBinaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to sam CLI binary. Leave empty for auto-detect."
+        },
+        "monolens.showImpactGutter": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show impact annotations in shared/ files"
+        },
+        "monolens.minCochangeScore": {
+          "type": "number",
+          "default": 0.4,
+          "description": "Minimum co-change score to show in gutter annotations"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile":  "node esbuild.js",
+    "watch":    "node esbuild.js --watch",
+    "package":  "vsce package",
+    "lint":     "eslint src --ext ts",
+    "test":     "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode":             "^1.85.0",
+    "@types/node":               "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/test-cli":          "^0.0.6",
+    "@vscode/test-electron":     "^2.3.8",
+    "@vscode/vsce":              "^2.24.0",
+    "esbuild":                   "^0.20.0",
+    "eslint":                    "^8.56.0",
+    "typescript":                "^5.3.3"
+  }
+}

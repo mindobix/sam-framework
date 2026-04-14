@@ -1,0 +1,20 @@
+[package]
+name = "sam-core"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+chrono = { version = "0.4", features = ["serde"] }
+libc = "0.2"
+
+[build-dependencies]
+cbindgen = "0.27"

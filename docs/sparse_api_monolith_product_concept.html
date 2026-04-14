@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAM — Sparse API Monolith Framework</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f5f3;
+  --color-background-info: #e6f1fb;
+  --color-background-success: #eaf3de;
+  --color-background-warning: #faeeda;
+  --color-background-danger: #fcebeb;
+  --color-text-primary: #1a1a18;
+  --color-text-secondary: #6b6b67;
+  --color-text-info: #185fa5;
+  --color-text-success: #3b6d11;
+  --color-text-warning: #854f0b;
+  --color-text-danger: #a32d2d;
+  --color-border-tertiary: rgba(0,0,0,0.12);
+  --color-border-secondary: rgba(0,0,0,0.22);
+  --color-border-info: #185fa5;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #1e1e1c;
+    --color-background-secondary: #2a2a28;
+    --color-background-info: #0c3358;
+    --color-background-success: #1a3308;
+    --color-background-warning: #412402;
+    --color-background-danger: #3a1010;
+    --color-text-primary: #e8e8e2;
+    --color-text-secondary: #9c9a92;
+    --color-text-info: #85b7eb;
+    --color-text-success: #97c459;
+    --color-text-warning: #ef9f27;
+    --color-text-danger: #f09595;
+    --color-border-tertiary: rgba(255,255,255,0.1);
+    --color-border-secondary: rgba(255,255,255,0.2);
+    --color-border-info: #85b7eb;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+
+.root { max-width: 960px; margin: 0 auto; }
+
+.page-header { margin-bottom: 1.5rem; }
+.page-header h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+.page-header p { font-size: 13px; color: var(--color-text-secondary); }
+
+.topnav {
+  display: flex; gap: 2px;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  padding-bottom: 0; margin-bottom: 14px;
+}
+.tnb {
+  background: transparent; border: none;
+  padding: 7px 14px; font-size: 12px;
+  color: var(--color-text-secondary); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -0.5px;
+  font-family: var(--font-sans); transition: color .15s;
+}
+.tnb.active { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); font-weight: 500; }
+.tnb:hover { color: var(--color-text-primary); }
+
+.view { display: none; }
+.view.active { display: block; }
+
+.card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.sec-title {
+  font-size: 11px; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: .06em;
+  font-weight: 500; margin-bottom: 10px;
+}
+
+.badge {
+  display: inline-flex; align-items: center;
+  font-size: 11px; padding: 2px 8px;
+  border-radius: 20px; font-weight: 500;
+}
+.b-blue  { background: var(--color-background-info);    color: var(--color-text-info); }
+.b-green { background: var(--color-background-success);  color: var(--color-text-success); }
+.b-amber { background: var(--color-background-warning);  color: var(--color-text-warning); }
+.b-red   { background: var(--color-background-danger);   color: var(--color-text-danger); }
+.b-gray  { background: var(--color-background-secondary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary); }
+
+/* Finder */
+.finder-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px;
+  background: var(--color-background-secondary);
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-radius: 10px 10px 0 0;
+}
+.finder-dot { width: 11px; height: 11px; border-radius: 50%; }
+.finder-title { flex: 1; text-align: center; font-size: 12px; color: var(--color-text-secondary); }
+.finder-body {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-top: none; border-radius: 0 0 10px 10px;
+  background: var(--color-background-primary);
+  min-height: 280px; display: flex;
+}
+.finder-sidebar {
+  width: 130px; border-right: 0.5px solid var(--color-border-tertiary);
+  padding: 10px 0; flex-shrink: 0;
+}
+.sidebar-section {
+  font-size: 10px; color: var(--color-text-secondary);
+  padding: 6px 10px 2px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.sidebar-item {
+  padding: 4px 10px; font-size: 12px;
+  color: var(--color-text-secondary); cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+}
+.sidebar-item.sel {
+  background: var(--color-background-info); color: var(--color-text-info);
+  border-radius: 4px; margin: 0 4px; padding: 4px 6px;
+}
+.si-icon {
+  width: 14px; height: 14px; border-radius: 3px;
+  flex-shrink: 0;
+}
+.finder-main { flex: 1; padding: 10px; }
+.finder-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.finder-search {
+  flex: 1; background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 5px; padding: 4px 8px;
+  font-size: 11px; color: var(--color-text-secondary);
+}
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 8px;
+}
+.folder-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 6px; border-radius: 6px;
+  cursor: pointer; transition: background .15s; position: relative;
+}
+.folder-item:hover { background: var(--color-background-secondary); }
+.folder-item.selected { background: var(--color-background-info); }
+.folder-icon { width: 44px; height: 36px; position: relative; flex-shrink: 0; }
+.fi-body { position: absolute; bottom: 0; left: 2px; right: 2px; height: 30px; border-radius: 3px 3px 4px 4px; }
+.fi-tab  { position: absolute; top: 0; left: 2px; width: 14px; height: 8px; border-radius: 3px 3px 0 0; }
+.folder-name { font-size: 10px; text-align: center; line-height: 1.3; max-width: 70px; word-break: break-word; }
+.ghost .fi-body, .ghost .fi-tab { opacity: 0.28; }
+.ghost .folder-name { color: var(--color-text-secondary); opacity: 0.6; }
+.loaded .fi-body, .loaded .fi-tab { opacity: 1; }
+.loaded .folder-name { color: var(--color-text-primary); }
+.loading-ring {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px; height: 16px;
+  border: 2px solid var(--color-border-tertiary);
+  border-top-color: var(--color-text-info);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.status-dot {
+  position: absolute; bottom: 3px; right: 3px;
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 1.5px solid var(--color-background-primary);
+}
+.info-panel {
+  background: var(--color-background-secondary);
+  border-radius: 8px; padding: 10px 12px;
+  margin-top: 10px; font-size: 12px;
+}
+.ip-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 3px 0; border-bottom: 0.5px solid var(--color-border-tertiary);
+}
+.ip-row:last-child { border-bottom: none; }
+.ip-key { color: var(--color-text-secondary); }
+.ip-val { color: var(--color-text-primary); font-weight: 500; }
+
+/* Layout grids */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* Tools */
+.tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 640px) { .tool-grid { grid-template-columns: 1fr; } }
+.tool-card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 10px; padding: 12px 14px;
+  cursor: pointer; transition: border-color .15s;
+}
+.tool-card:hover { border-color: var(--color-border-secondary); }
+.tool-card.featured { border-color: var(--color-border-info); border-width: 1.5px; }
+.tool-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 3px; }
+.tool-desc { font-size: 11px; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: 8px; }
+.tool-tech { display: flex; flex-wrap: wrap; gap: 3px; }
+.pill {
+  font-size: 10px; padding: 2px 6px;
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 10px; color: var(--color-text-secondary);
+}
+
+/* Profiles */
+.profile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 640px) { .profile-grid { grid-template-columns: repeat(2, 1fr); } }
+.profile-card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 10px; padding: 10px 12px;
+  cursor: pointer; transition: all .15s;
+}
+.profile-card:hover, .profile-card.sel {
+  border-color: var(--color-border-info); border-width: 1px;
+}
+.profile-card.sel { background: var(--color-background-info); }
+.profile-name { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+.profile-modules { display: flex; flex-direction: column; gap: 2px; }
+.pm-row { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+.pm-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* CLI */
+.cli-block {
+  background: #1e1e1e; border-radius: 8px; padding: 12px 14px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: #d4d4d4; line-height: 1.8; margin-top: 8px;
+  overflow-x: auto;
+}
+.cli-prompt { color: #4ec9b0; }
+.cli-flag   { color: #9cdcfe; }
+.cli-string { color: #ce9178; }
+.cli-comment{ color: #6a9955; }
+.cli-warn   { color: #dcdcaa; }
+
+/* Impact */
+.impact-list { display: flex; flex-direction: column; gap: 4px; }
+.impact-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 6px;
+  background: var(--color-background-secondary); font-size: 11px;
+}
+.impact-name { flex: 1; color: var(--color-text-primary); font-family: var(--font-mono); }
+.impact-risk { padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 500; }
+
+/* Buttons */
+.action-btn {
+  background: transparent;
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: 8px; padding: 6px 12px;
+  font-size: 12px; color: var(--color-text-primary);
+  cursor: pointer; font-family: var(--font-sans);
+  transition: background .15s;
+}
+.action-btn:hover { background: var(--color-background-secondary); }
+
+/* Step items */
+.step-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px; background: var(--color-background-secondary); border-radius: 6px;
+}
+.step-num {
+  width: 20px; height: 20px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0; font-weight: 500;
+}
+.step-text { font-size: 11px; color: var(--color-text-primary); line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="root">
+
+<div class="page-header">
+  <h1>SAM — Sparse API Monolith framework</h1>
+  <p>A developer toolset for AI-speed monolith API development at Kroger, Capital One, and enterprise scale</p>
+</div>
+
+<div class="topnav">
+  <button class="tnb active" onclick="nav('finder', this)">Finder integration</button>
+  <button class="tnb" onclick="nav('tools', this)">The tool suite</button>
+  <button class="tnb" onclick="nav('profiles', this)">Workspace profiles</button>
+  <button class="tnb" onclick="nav('impact', this)">AI impact analysis</button>
+  <button class="tnb" onclick="nav('cli', this)">CLI + git hooks</button>
+</div>
+
+<!-- VIEW: FINDER -->
+<div id="v-finder" class="view active">
+  <div class="grid-2">
+    <div>
+      <div class="sec-title">API monolith repo — finder view</div>
+      <div style="border-radius:10px;overflow:hidden;border:0.5px solid var(--color-border-tertiary)">
+        <div class="finder-bar">
+          <div class="finder-dot" style="background:#ff5f57"></div>
+          <div class="finder-dot" style="background:#febc2e"></div>
+          <div class="finder-dot" style="background:#28c840"></div>
+          <div class="finder-title">enterprise-api-monolith</div>
+        </div>
+        <div class="finder-body">
+          <div class="finder-sidebar">
+            <div class="sidebar-section">Favorites</div>
+            <div class="sidebar-item sel"><div class="si-icon" style="background:var(--color-background-info)"></div>api-monolith</div>
+            <div class="sidebar-item"><div class="si-icon" style="background:#e8e8e0"></div>Desktop</div>
+            <div class="sidebar-item"><div class="si-icon" style="background:#e8e8e0"></div>Documents</div>
+            <div class="sidebar-section" style="margin-top:8px">Tags</div>
+            <div class="sidebar-item"><div class="si-icon" style="background:var(--color-background-success)"></div>loaded</div>
+            <div class="sidebar-item"><div class="si-icon" style="background:#e8e8e0;opacity:.4"></div>ghost</div>
+          </div>
+          <div class="finder-main">
+            <div class="finder-toolbar">
+              <div class="finder-search">search api-monolith</div>
+              <button class="action-btn" style="font-size:10px;padding:4px 8px" onclick="loadFolder()">hydrate selected</button>
+            </div>
+            <div class="folder-grid" id="folderGrid"></div>
+          </div>
+        </div>
+      </div>
+      <div id="folderInfo" style="margin-top:8px;display:none">
+        <div class="info-panel">
+          <div class="ip-row"><span class="ip-key">Selected</span><span class="ip-val" id="selName">—</span></div>
+          <div class="ip-row"><span class="ip-key">Status</span><span id="selStatus" class="ip-val">—</span></div>
+          <div class="ip-row"><span class="ip-key">Est. download</span><span class="ip-val" id="selSize">—</span></div>
+          <div class="ip-row"><span class="ip-key">Shared deps pulled</span><span class="ip-val" id="selDeps">—</span></div>
+          <div class="ip-row"><span class="ip-key">Git co-change score</span><span class="ip-val" id="selScore">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-title">How the ghost FS works</div>
+      <div class="card" style="margin-bottom:8px">
+        <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.7;margin-bottom:10px">
+          The OS shell extension registers a virtual filesystem driver. Every folder in the monorepo appears immediately at clone — but only as a <span style="font-weight:500;color:var(--color-text-primary)">stub inode</span> with metadata. No code is on disk until you open it.
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="step-item">
+            <div class="step-num" style="background:var(--color-background-warning);color:var(--color-text-warning)">1</div>
+            <div class="step-text"><span style="font-weight:500">git clone --filter=blob:none</span> downloads tree structure only. All folders visible, no file content.</div>
+          </div>
+          <div class="step-item">
+            <div class="step-num" style="background:var(--color-background-info);color:var(--color-text-info)">2</div>
+            <div class="step-text"><span style="font-weight:500">Shell extension</span> (Finder/Explorer) marks unhydrated dirs with ghost overlay icon + grayed opacity.</div>
+          </div>
+          <div class="step-item">
+            <div class="step-num" style="background:var(--color-background-success);color:var(--color-text-success)">3</div>
+            <div class="step-text"><span style="font-weight:500">Double-tap / enter</span> triggers AI resolver: scans imports + git log co-changes + semantic similarity to fetch exactly what you need.</div>
+          </div>
+          <div class="step-item">
+            <div class="step-num" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-secondary)">4</div>
+            <div class="step-text"><span style="font-weight:500">Shared modules</span> (auth, types, utils) hydrate automatically when any domain that needs them is opened — never manually.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-title">Disk usage comparison</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--color-background-secondary);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:4px">Full clone (today)</div>
+            <div style="font-size:22px;font-weight:500;color:var(--color-text-danger)">14.2 GB</div>
+            <div style="font-size:10px;color:var(--color-text-secondary)">all domains</div>
+          </div>
+          <div style="background:var(--color-background-secondary);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:4px">SAM sparse fetch</div>
+            <div style="font-size:22px;font-weight:500;color:var(--color-text-success)">340 MB</div>
+            <div style="font-size:10px;color:var(--color-text-secondary)">your domain + deps</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: TOOLS -->
+<div id="v-tools" class="view">
+  <div class="sec-title">The SAM (Sparse API Monolith) tool suite</div>
+  <div class="tool-grid">
+    <div class="tool-card featured">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:28px;height:28px;border-radius:6px;background:var(--color-background-info);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--color-text-info)">MF</div>
+        <div class="tool-name">MonoFetch</div>
+        <span class="badge b-blue" style="margin-left:auto;font-size:10px">Core</span>
+      </div>
+      <div class="tool-desc">Git plugin and CLI. Implements sparse checkout with AI-assisted dependency resolution. Reads import graphs, git co-change logs, and semantic analysis to pull exactly the right code. Mac + Windows.</div>
+      <div class="tool-tech">
+        <span class="pill">Rust</span><span class="pill">libgit2</span><span class="pill">WASM</span><span class="pill">tree-sitter</span><span class="pill">git sparse-checkout</span>
+      </div>
+    </div>
+    <div class="tool-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:28px;height:28px;border-radius:6px;background:var(--color-background-warning);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--color-text-warning)">MS</div>
+        <div class="tool-name">MonoShell</div>
+        <span class="badge b-amber" style="margin-left:auto;font-size:10px">OS Layer</span>
+      </div>
+      <div class="tool-desc">Finder (macOS) and Explorer (Windows) shell extensions. Ghost-overlays for unhydrated folders. Double-tap triggers MonoFetch. Badge icons show load state: ghost, loading, ready, stale.</div>
+      <div class="tool-tech">
+        <span class="pill">Swift/AppKit</span><span class="pill">FileProvider</span><span class="pill">Win32 Shell</span><span class="pill">IShellExtension</span>
+      </div>
+    </div>
+    <div class="tool-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:28px;height:28px;border-radius:6px;background:var(--color-background-success);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--color-text-success)">MG</div>
+        <div class="tool-name">MonoGraph</div>
+        <span class="badge b-green" style="margin-left:auto;font-size:10px">AI Engine</span>
+      </div>
+      <div class="tool-desc">The AI brain. Builds a live dependency graph from: static import analysis, git co-change frequency, semantic code embeddings, and runtime call traces. Runs as a local daemon or CI service.</div>
+      <div class="tool-tech">
+        <span class="pill">Python</span><span class="pill">tree-sitter</span><span class="pill">embeddings</span><span class="pill">graph DB</span><span class="pill">git log mining</span>
+      </div>
+    </div>
+    <div class="tool-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:28px;height:28px;border-radius:6px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--color-text-secondary)">MP</div>
+        <div class="tool-name">MonoProfile</div>
+        <span class="badge b-gray" style="margin-left:auto;font-size:10px">Teams</span>
+      </div>
+      <div class="tool-desc">Team workspace profiles stored in .sam/profiles.yaml. "I am on the Sales API team" auto-configures what hydrates. AI suggests profile updates when git log shows a dev repeatedly touching new modules.</div>
+      <div class="tool-tech">
+        <span class="pill">YAML DSL</span><span class="pill">git hooks</span><span class="pill">VS Code ext</span><span class="pill">JetBrains plugin</span>
+      </div>
+    </div>
+    <div class="tool-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:28px;height:28px;border-radius:6px;background:var(--color-background-danger);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--color-text-danger)">MW</div>
+        <div class="tool-name">MonoWatch</div>
+        <span class="badge b-red" style="margin-left:auto;font-size:10px">Safety</span>
+      </div>
+      <div class="tool-desc">Pre-push impact analysis. When you edit a shared module, MonoWatch shows all other domains that consume it — with risk scores. Surfaces breaking changes before they hit CI. Integrates with PR review.</div>
+      <div class="tool-tech">
+        <span class="pill">Rust</span><span class="pill">language server</span><span class="pill">GitHub Actions</span><span class="pill">Slack alerts</span>
+      </div>
+    </div>
+    <div class="tool-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:28px;height:28px;border-radius:6px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--color-text-secondary)">ML</div>
+        <div class="tool-name">MonoLens</div>
+        <span class="badge b-gray" style="margin-left:auto;font-size:10px">IDE</span>
+      </div>
+      <div class="tool-desc">VS Code + JetBrains plugin. Shows ghost folders in file tree. One-click hydrate with dep preview. Inline annotations showing "14 other teams use this function." AI chat for "what do I need to change to add X feature?"</div>
+      <div class="tool-tech">
+        <span class="pill">TypeScript LSP</span><span class="pill">VS Code API</span><span class="pill">IntelliJ SDK</span><span class="pill">AI assistant</span>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:10px;padding:10px 14px;background:var(--color-background-secondary);border-radius:8px;font-size:12px;color:var(--color-text-secondary);line-height:1.6">
+    Each tool is independently useful but composable as a platform. MonoGraph is the shared intelligence layer — every other tool consumes its dependency graph API.
+  </div>
+</div>
+
+<!-- VIEW: PROFILES -->
+<div id="v-profiles" class="view">
+  <div class="grid-2">
+    <div>
+      <div class="sec-title">Team workspace profiles</div>
+      <div class="profile-grid" id="profileGrid"></div>
+      <div style="margin-top:10px" id="profileDetail"></div>
+    </div>
+    <div>
+      <div class="sec-title">profiles.yaml — what ships in the repo</div>
+      <div class="cli-block">
+<span class="cli-comment"># .sam/profiles.yaml</span>
+<span class="cli-comment"># committed to repo, AI-maintained</span>
+
+profiles:
+  <span class="cli-warn">sales-api</span>:
+    domains:
+      - <span class="cli-string">apis/sales</span>
+      - <span class="cli-string">apis/crm-integration</span>
+      - <span class="cli-string">apis/pricing</span>
+    auto_include:
+      - <span class="cli-string">shared/auth</span>    <span class="cli-comment"># always</span>
+      - <span class="cli-string">shared/types</span>
+    ai_infer: <span class="cli-flag">true</span>   <span class="cli-comment"># add deps AI finds</span>
+    watch:
+      - <span class="cli-string">apis/inventory</span>  <span class="cli-comment"># alerts only</span>
+
+  <span class="cli-warn">products-api</span>:
+    domains:
+      - <span class="cli-string">apis/products</span>
+      - <span class="cli-string">apis/catalog</span>
+      - <span class="cli-string">apis/search</span>
+    auto_include:
+      - <span class="cli-string">shared/auth</span>
+      - <span class="cli-string">shared/media</span>
+      - <span class="cli-string">shared/types</span>
+
+  <span class="cli-warn">platform</span>:
+    domains: <span class="cli-string">"*"</span>  <span class="cli-comment"># full monolith</span>
+    ai_infer: <span class="cli-flag">false</span>
+      </div>
+      <div style="margin-top:8px;padding:10px;background:var(--color-background-secondary);border-radius:8px">
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px;font-weight:500">AI profile suggestion (from git log)</div>
+        <div style="font-size:12px;color:var(--color-text-primary);line-height:1.5">MonoGraph noticed you've touched <span style="font-family:var(--font-mono);font-size:11px">apis/loyalty</span> in 8 of the last 12 commits. Suggest adding to your <span style="font-weight:500">sales-api</span> profile?</div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="action-btn" style="font-size:11px;padding:4px 10px">Add to profile</button>
+          <button class="action-btn" style="font-size:11px;padding:4px 10px">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: IMPACT -->
+<div id="v-impact" class="view">
+  <div class="sec-title">AI change impact analysis — MonoWatch</div>
+  <div class="grid-2">
+    <div>
+      <div class="card" style="margin-bottom:8px">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">You modified: <span style="font-family:var(--font-mono);color:var(--color-text-primary)">shared/auth/token-validator.ts</span></div>
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:8px">MonoGraph found 9 domains importing this module. Impact scored by: call frequency, test coverage, and last-modified recency.</div>
+        <div class="impact-list">
+          <div class="impact-row"><span class="impact-name">apis/payments</span><span style="color:var(--color-text-secondary);font-size:10px;margin-right:auto">214 calls/day</span><span class="impact-risk b-red">critical</span></div>
+          <div class="impact-row"><span class="impact-name">apis/checkout</span><span style="color:var(--color-text-secondary);font-size:10px;margin-right:auto">198 calls/day</span><span class="impact-risk b-red">critical</span></div>
+          <div class="impact-row"><span class="impact-name">apis/user-mgmt</span><span style="color:var(--color-text-secondary);font-size:10px;margin-right:auto">87 calls/day</span><span class="impact-risk b-amber">high</span></div>
+          <div class="impact-row"><span class="impact-name">apis/sales</span><span style="color:var(--color-text-secondary);font-size:10px;margin-right:auto">43 calls/day</span><span class="impact-risk b-amber">high</span></div>
+          <div class="impact-row"><span class="impact-name">apis/loyalty</span><span style="color:var(--color-text-secondary);font-size:10px;margin-right:auto">12 calls/day</span><span class="impact-risk b-green">low</span></div>
+          <div class="impact-row"><span class="impact-name">apis/reporting</span><span style="color:var(--color-text-secondary);font-size:10px;margin-right:auto">4 calls/day</span><span class="impact-risk b-green">low</span></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="action-btn">Notify team leads</button>
+          <button class="action-btn">Run impact tests</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="sec-title">How MonoGraph scores dependencies</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="padding:8px;background:var(--color-background-secondary);border-radius:6px">
+            <div style="font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px">Static import graph</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">tree-sitter parses all languages. Builds a directed graph of every import statement across the monolith.</div>
+          </div>
+          <div style="padding:8px;background:var(--color-background-secondary);border-radius:6px">
+            <div style="font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px">Git co-change frequency</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">Files changed together in the same commit have high co-change scores. Predicts "you'll probably need this too."</div>
+          </div>
+          <div style="padding:8px;background:var(--color-background-secondary);border-radius:6px">
+            <div style="font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px">Semantic code embeddings</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">Embeds all functions. High cosine similarity = likely related even without explicit imports. Catches indirect coupling.</div>
+          </div>
+          <div style="padding:8px;background:var(--color-background-secondary);border-radius:6px">
+            <div style="font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px">Runtime call traces (optional)</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">If OpenTelemetry traces are available, actual production call frequency overrides static analysis scores.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW: CLI -->
+<div id="v-cli" class="view">
+  <div class="grid-2">
+    <div>
+      <div class="sec-title">MonoFetch CLI — core commands</div>
+      <div class="cli-block">
+<span class="cli-comment"># Initial setup — tree only, no blobs</span>
+<span class="cli-prompt">$</span> sam init enterprise-api-monolith
+<span class="cli-comment">  → clones tree (89 folders, 42 MB)</span>
+<span class="cli-comment">  → installs MonoShell extension</span>
+<span class="cli-comment">  → all folders appear ghost in Finder</span>
+
+<span class="cli-comment"># Hydrate by profile</span>
+<span class="cli-prompt">$</span> sam use <span class="cli-flag">--profile</span> <span class="cli-string">sales-api</span>
+<span class="cli-comment">  → resolving dependencies via MonoGraph</span>
+<span class="cli-comment">  → fetching: apis/sales (12 MB)</span>
+<span class="cli-comment">  → fetching: shared/auth (3.1 MB)</span>
+<span class="cli-comment">  → fetching: shared/types (1.2 MB)</span>
+<span class="cli-comment">  → inferred dep: apis/pricing (4 MB)</span>
+<span class="cli-comment">  → total: 20.3 MB downloaded</span>
+
+<span class="cli-comment"># Hydrate a single domain + AI deps</span>
+<span class="cli-prompt">$</span> sam fetch <span class="cli-string">apis/products</span> <span class="cli-flag">--with-deps</span>
+<span class="cli-comment">  → static imports: shared/types, shared/media</span>
+<span class="cli-comment">  → co-change (score 0.87): apis/catalog</span>
+<span class="cli-comment">  → semantic sim (score 0.71): apis/search</span>
+<span class="cli-comment">  → fetching 4 modules (31 MB)</span>
+
+<span class="cli-comment"># Check what you'd need before fetching</span>
+<span class="cli-prompt">$</span> sam plan <span class="cli-string">apis/payments</span>
+<span class="cli-comment">  → would fetch: 6 modules, 28 MB</span>
+<span class="cli-comment">  → critical shared deps: auth, types</span>
+<span class="cli-comment">  → impact score: HIGH (touch carefully)</span>
+
+<span class="cli-comment"># Pre-push impact check</span>
+<span class="cli-prompt">$</span> sam impact
+<span class="cli-comment">  → changed: shared/auth/token-validator</span>
+<span class="cli-comment">  → affects: 9 domains (2 critical)</span>
+<span class="cli-comment">  → blocking push? no (warn only)</span>
+      </div>
+    </div>
+    <div>
+      <div class="sec-title">Git hooks and CI integration</div>
+      <div class="cli-block" style="margin-bottom:8px">
+<span class="cli-comment"># .sam/hooks/pre-push (auto-installed)</span>
+#!/bin/sh
+sam impact <span class="cli-flag">--format</span> json | \
+  jq <span class="cli-string">'.critical | length'</span> | \
+  xargs -I{} sh -c \
+  <span class="cli-string">'[ {} -gt 2 ] &amp;&amp; echo
+"WARNING: {} critical domains affected"'</span>
+
+<span class="cli-comment"># GitHub Actions step</span>
+- name: <span class="cli-string">SAM impact analysis</span>
+  uses: <span class="cli-string">sam-framework/action@v2</span>
+  with:
+    report: <span class="cli-string">pr-comment</span>
+    block_on: <span class="cli-string">critical</span>
+    notify_teams: <span class="cli-flag">true</span>
+      </div>
+      <div class="card">
+        <div class="sec-title">Existing tech this is built on</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary)"><span style="color:var(--color-text-primary);font-family:var(--font-mono)">git sparse-checkout</span><span style="color:var(--color-text-secondary)">native git, v2.25+</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary)"><span style="color:var(--color-text-primary);font-family:var(--font-mono)">git filter-repo</span><span style="color:var(--color-text-secondary)">partial clone protocol</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary)"><span style="color:var(--color-text-primary);font-family:var(--font-mono)">VFS for Git (Scalar)</span><span style="color:var(--color-text-secondary)">Microsoft's precedent</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary)"><span style="color:var(--color-text-primary);font-family:var(--font-mono)">macOS FileProvider</span><span style="color:var(--color-text-secondary)">iCloud drive API</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary)"><span style="color:var(--color-text-primary);font-family:var(--font-mono)">IShellExtension (Win)</span><span style="color:var(--color-text-secondary)">OneDrive/Dropbox model</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary)"><span style="color:var(--color-text-primary);font-family:var(--font-mono)">tree-sitter</span><span style="color:var(--color-text-secondary)">multi-lang parse tree</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0"><span style="color:var(--color-text-primary);font-family:var(--font-mono)">Nx / Turborepo</span><span style="color:var(--color-text-secondary)">task graph inspiration</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /root -->
+
+<script>
+const folders = [
+  {name:"shared/auth",   color:"#185fa5",tab:"#378add",loaded:true, size:"3.1 MB", deps:"—",                          score:"always included"},
+  {name:"shared/types",  color:"#185fa5",tab:"#378add",loaded:true, size:"1.2 MB", deps:"—",                          score:"always included"},
+  {name:"apis/sales",    color:"#3b6d11",tab:"#639922",loaded:true, size:"12 MB",  deps:"auth, types, pricing",       score:"0.94"},
+  {name:"apis/pricing",  color:"#3b6d11",tab:"#639922",loaded:true, size:"4 MB",   deps:"auth, types",                score:"0.87"},
+  {name:"apis/products", color:"#888780",tab:"#b4b2a9",loaded:false,size:"18 MB",  deps:"auth, types, media, catalog",score:"0.41"},
+  {name:"apis/catalog",  color:"#888780",tab:"#b4b2a9",loaded:false,size:"9 MB",   deps:"auth, types, search",        score:"0.38"},
+  {name:"apis/inventory",color:"#888780",tab:"#b4b2a9",loaded:false,size:"7 MB",   deps:"auth, types",                score:"0.22"},
+  {name:"apis/payments", color:"#888780",tab:"#b4b2a9",loaded:false,size:"14 MB",  deps:"auth, types, checkout",      score:"0.11"},
+  {name:"apis/checkout", color:"#888780",tab:"#b4b2a9",loaded:false,size:"11 MB",  deps:"auth, types, payments, cart",score:"0.09"},
+  {name:"apis/loyalty",  color:"#888780",tab:"#b4b2a9",loaded:false,size:"6 MB",   deps:"auth, types, sales",         score:"0.31"},
+  {name:"apis/search",   color:"#888780",tab:"#b4b2a9",loaded:false,size:"22 MB",  deps:"auth, types, catalog",       score:"0.18"},
+  {name:"shared/media",  color:"#888780",tab:"#b4b2a9",loaded:false,size:"2.4 MB", deps:"types",                      score:"0.12"},
+];
+
+let selectedFolder = null;
+let loadingFolder  = null;
+
+function renderFolders() {
+  document.getElementById('folderGrid').innerHTML = folders.map((f, i) => {
+    const cls       = f.loaded ? 'loaded' : 'ghost';
+    const isLoading = loadingFolder === i;
+    return `<div class="folder-item ${cls}${selectedFolder===i?' selected':''}" onclick="selectFolder(${i})" ondblclick="hydrateFolder(${i})">
+      <div class="folder-icon">
+        <div class="fi-tab"  style="background:${f.tab}"></div>
+        <div class="fi-body" style="background:${f.color}"></div>
+        ${isLoading ? '<div class="loading-ring"></div>' : ''}
+        <div class="status-dot" style="background:${f.loaded?'#28c840':'#c8c8c8'}"></div>
+      </div>
+      <div class="folder-name">${f.name}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectFolder(i) {
+  selectedFolder = i;
+  renderFolders();
+  const f = folders[i];
+  document.getElementById('folderInfo').style.display = 'block';
+  document.getElementById('selName').textContent  = f.name;
+  document.getElementById('selStatus').innerHTML  = f.loaded
+    ? '<span class="badge b-green">Hydrated</span>'
+    : '<span class="badge b-gray">Ghost — double-tap to fetch</span>';
+  document.getElementById('selSize').textContent  = f.size;
+  document.getElementById('selDeps').textContent  = f.deps  || '—';
+  document.getElementById('selScore').textContent = f.score || '—';
+}
+
+function hydrateFolder(i) {
+  if (folders[i].loaded) return;
+  loadingFolder = i;
+  renderFolders();
+  setTimeout(() => {
+    folders[i].loaded = true;
+    loadingFolder = null;
+    renderFolders();
+    if (selectedFolder === i) selectFolder(i);
+  }, 1200);
+}
+
+function loadFolder() {
+  if (selectedFolder !== null && !folders[selectedFolder].loaded) hydrateFolder(selectedFolder);
+}
+
+const profiles = [
+  { name:"Sales API team",     size:"~20 MB",   color:"b-green", modules:[
+    {name:"apis/sales",loaded:true},{name:"apis/pricing",loaded:true},{name:"apis/crm-integration",loaded:true},
+    {name:"shared/auth",loaded:true},{name:"shared/types",loaded:true},{name:"apis/inventory",loaded:false,watch:true}
+  ]},
+  { name:"Products team",      size:"~55 MB",   color:"b-blue",  modules:[
+    {name:"apis/products",loaded:true},{name:"apis/catalog",loaded:true},{name:"apis/search",loaded:true},
+    {name:"shared/auth",loaded:true},{name:"shared/types",loaded:true},{name:"shared/media",loaded:true}
+  ]},
+  { name:"Payments team",      size:"~32 MB",   color:"b-amber", modules:[
+    {name:"apis/payments",loaded:true},{name:"apis/checkout",loaded:true},
+    {name:"shared/auth",loaded:true},{name:"shared/types",loaded:true}
+  ]},
+  { name:"Data / reporting",   size:"~18 MB",   color:"b-gray",  modules:[
+    {name:"apis/reporting",loaded:true},{name:"apis/analytics",loaded:true},
+    {name:"shared/auth",loaded:true},{name:"shared/types",loaded:true}
+  ]},
+  { name:"Platform / SRE",     size:"~14.2 GB", color:"b-red",   modules:[
+    {name:"ALL domains",loaded:true}
+  ]},
+  { name:"Onboarding (new hire)", size:"~12 MB", color:"b-gray", modules:[
+    {name:"apis/hello-world",loaded:true},{name:"shared/auth",loaded:true},{name:"shared/types",loaded:true}
+  ]},
+];
+
+let selProfile = 0;
+
+function renderProfiles() {
+  document.getElementById('profileGrid').innerHTML = profiles.map((p, i) => `
+    <div class="profile-card${selProfile===i?' sel':''}" onclick="selectProfile(${i})">
+      <div style="margin-bottom:4px"><span class="badge ${p.color}" style="font-size:10px">${p.size}</span></div>
+      <div class="profile-name">${p.name}</div>
+      <div class="profile-modules">
+        ${p.modules.slice(0,3).map(m=>`<div class="pm-row">
+          <div class="pm-dot" style="background:${m.loaded?'#28c840':m.watch?'#febc2e':'#c8c8c8'}"></div>
+          <span style="color:var(--color-text-secondary);font-family:var(--font-mono);font-size:10px">${m.name}</span>
+        </div>`).join('')}
+        ${p.modules.length>3?`<div style="font-size:10px;color:var(--color-text-secondary);padding-left:10px">+${p.modules.length-3} more</div>`:''}
+      </div>
+    </div>`).join('');
+
+  const p = profiles[selProfile];
+  document.getElementById('profileDetail').innerHTML = `
+    <div class="card">
+      <div class="sec-title">${p.name} — full module list</div>
+      <div class="profile-modules" style="gap:5px">
+        ${p.modules.map(m=>`<div class="pm-row" style="padding:3px 0;border-bottom:0.5px solid var(--color-border-tertiary)">
+          <div class="pm-dot" style="background:${m.loaded?'#28c840':m.watch?'#febc2e':'#c8c8c8'}"></div>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-primary)">${m.name}</span>
+          ${m.watch?'<span class="badge b-amber" style="margin-left:auto;font-size:10px">watch only</span>':m.loaded?'<span class="badge b-green" style="margin-left:auto;font-size:10px">hydrated</span>':''}
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function selectProfile(i) { selProfile = i; renderProfiles(); }
+
+function nav(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tnb').forEach(b => b.classList.remove('active'));
+  document.getElementById('v-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+renderFolders();
+renderProfiles();
+</script>
+</body>
+</html>
