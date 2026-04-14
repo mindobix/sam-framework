@@ -87,15 +87,14 @@ sam use --profile your-team-api              # hydrate your profile
 
 ## Finder Integration
 
-SAM uses native macOS `chflags hidden` to dim non-hydrated folders:
+SAM uses native macOS `chflags hidden` to dim non-hydrated folders. Supports nested folder structures up to any depth.
 
 1. **Enable hidden files**: press **Cmd+Shift+.** in Finder (one-time)
-2. **`sam setup`** creates empty skeleton directories for every domain, dimmed
-3. **`sam watch`** monitors which folder you navigate into via Finder
-4. **Double-click a dimmed folder** → watch daemon detects it, runs `sam fetch --with-deps`, files appear, folder becomes normal
-5. **`sam dehydrate <domain>`** removes files, folder returns to dimmed state
-
-No extra files. No Icon? resources. No Finder extensions. Just `chflags` + Finder path polling.
+2. **`sam setup`** creates the full directory tree as ghost folders (dimmed), up to 4 levels deep by default
+3. **`sam watch`** monitors Finder navigation — when you double-click a dimmed folder, it hydrates that folder plus all subfolders and dependencies
+4. **`sam dehydrate <domain>`** removes files, folder returns to dimmed state
+5. **Container folders** (directories that only contain subdirectories) stay visible for navigation
+6. **Leaf folders** (directories with actual source files) appear dimmed until hydrated
 
 ```bash
 # Start Finder integration
@@ -103,6 +102,9 @@ No extra files. No Icon? resources. No Finder extensions. Just `chflags` + Finde
 
 # Stop
 ./sam-stop.sh
+
+# Custom depth (default: 4)
+sam setup --depth 6
 ```
 
 ## VS Code Integration (MonoLens)
@@ -151,13 +153,13 @@ profiles:
 
 1. **`sam init`** — `git clone --filter=blob:none --sparse` downloads the full tree structure without file contents. Fast clone regardless of repo size.
 
-2. **`sam setup`** — Creates empty directories for every domain. Sets `chflags hidden` on non-hydrated ones so they appear dimmed in Finder. Starts MonoGraph daemon.
+2. **`sam setup`** — Creates the full directory tree up to 4 levels deep (configurable with `--depth N`). Leaf directories with source files get `chflags hidden` (dimmed). Container directories stay visible for navigation. Starts MonoGraph daemon.
 
 3. **`sam use --profile`** — Reads your team's profile, calls MonoGraph to resolve dependencies via static import analysis and git co-change mining, then `git sparse-checkout add` to materialize only what you need.
 
 4. **`sam watch`** — Background daemon that polls Finder's current window path every 500ms via AppleScript. When you navigate into a ghost folder, it resolves dependencies via MonoGraph and hydrates the folder with all its deps.
 
-5. **`sam fetch --with-deps`** — Adds a domain to sparse checkout, calls `git checkout` to materialize files, updates workspace state, clears the hidden flag.
+5. **`sam fetch --with-deps`** — Adds a domain to sparse checkout, materializes all files and subdirectories recursively, resolves dependencies, updates workspace state, clears hidden flags on the domain and all parent directories.
 
 6. **`sam dehydrate`** — Removes a domain from sparse checkout, recreates the empty skeleton directory, sets the hidden flag. Terminal only — explicit and safe.
 

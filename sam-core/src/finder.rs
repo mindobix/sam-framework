@@ -157,7 +157,6 @@ pub fn setup_skeleton_dirs(repo: &Path, max_depth: usize) -> Result<(usize, usiz
     let _ = Command::new("defaults")
         .args(["write", "com.apple.finder", "AppleShowAllFiles", "-bool", "true"])
         .output();
-    let _ = Command::new("killall").arg("Finder").output();
 
     ensure_monograph_running(repo);
 
@@ -275,7 +274,24 @@ pub fn watch_and_hydrate(repo: &Path) -> Result<()> {
                 if !dir.is_empty() && ghosts.contains(dir) {
                     eprintln!("  Detected: {} — resolving deps & hydrating...", dir);
 
-                    let domains_to_hydrate = resolve_with_deps(repo, dir);
+                    // Resolve dependencies for this dir
+                    let mut domains_to_hydrate = resolve_with_deps(repo, dir);
+
+                    // Also include all sub-directories of each domain
+                    let mut with_children: Vec<String> = Vec::new();
+                    for d in &domains_to_hydrate {
+                        with_children.push(d.clone());
+                        // Find all ghost subdirs under this domain
+                        let prefix = format!("{}/", d);
+                        for ghost in ghosts.iter() {
+                            if ghost.starts_with(&prefix) {
+                                with_children.push(ghost.clone());
+                            }
+                        }
+                    }
+                    with_children.sort();
+                    with_children.dedup();
+                    domains_to_hydrate = with_children;
 
                     if let Err(e) = git::add_sparse(repo, &domains_to_hydrate) {
                         eprintln!("  \u{2717} sparse-checkout failed: {}", e);
@@ -293,14 +309,23 @@ pub fn watch_and_hydrate(repo: &Path) -> Result<()> {
                             let _ = workspace::save(repo, &w);
                         }
 
-                        // Unhide hydrated dirs + their parents
+                        // Unhide hydrated dirs + their parents + all children
                         for d in &domains_to_hydrate {
                             unhide_with_parents(repo, d);
                             ghosts.remove(d.as_str());
                         }
 
-                        eprintln!("  \u{2713} {} + {} deps hydrated",
-                            dir, domains_to_hydrate.len() - 1);
+                        // Refresh Finder in place so subfolders redraw
+                        let _ = Command::new("osascript")
+                            .arg("-e")
+                            .arg(format!(
+                                "tell application \"Finder\" to set target of front window to (POSIX file \"{}\" as alias)",
+                                finder_path.trim_end_matches('/')
+                            ))
+                            .output();
+
+                        eprintln!("  \u{2713} {} hydrated ({} dirs + deps)",
+                            dir, domains_to_hydrate.len());
                     }
                 }
 

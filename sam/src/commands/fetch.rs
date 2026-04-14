@@ -81,9 +81,20 @@ pub fn run(repo: &Path, domain: &str, with_deps: bool, force: bool) -> anyhow::R
         state.add_domain(domain);
     }
 
+    // Also mark all subdirectories as hydrated
+    if let Ok(all_dirs) = sam_core::git::list_all_dirs(repo, sam_core::git::DEFAULT_MAX_DEPTH) {
+        let prefix = format!("{}/", domain);
+        for d in &all_dirs {
+            if d.starts_with(&prefix) {
+                state.add_domain(d);
+                let _ = sam_core::finder::mark_hydrated(repo, d);
+            }
+        }
+    }
+
     sam_core::workspace::save(repo, &state)?;
 
-    // Clear Finder gray tag now that domain is hydrated
+    // Clear Finder hidden flag on domain + parents
     let _ = sam_core::finder::mark_hydrated(repo, domain);
 
     let count = sam_core::git::count_files(repo, domain)?;
